@@ -1,0 +1,124 @@
+//choose directory, make sure to use / instead of \ 
+dir="C:/Users/mrodrig/Desktop/Ku80_IUTx_Spleen_Script";
+DABResults="C:/Users/mrodrig/Desktop/Ku80_IUTx_Spleen_Script/Ku80_Sheep_DAB Results"
+
+print("searching "+dir);
+
+
+
+//get all files in directory
+//make sure all files in this directory are images
+imageList = getFileList(dir);
+
+print("Files: ");
+for (i = 0; i < imageList.length; i++) {
+	print(imageList[i]);
+}
+
+//loop through every file name
+for(i=0;i<imageList.length;i++){
+	print("Processing: "+imageList[i]);
+	//see if the file is an image
+	if(isImage(imageList[i])){
+		//if it is an image, open it
+		open(dir+"/"+imageList[i]);
+		//and then processes it
+		makeRectangle(9, 6, 1587, 1143);
+		run("Crop");
+		lesgo();
+		close("*");
+	}
+}
+
+
+
+//close results after processing
+close("Results");
+
+function lesgo(){
+	  run("Colour Deconvolution", "vectors=[H&E DAB]");
+	
+	  list = getList("image.titles");
+	  if (list.length==0)
+	     print("No image windows are open");
+	  else {
+	     print("Image windows:");
+	     for (i=0; i<list.length; i++){
+	     	imageName=list[i];
+	        print("Processing: "+imageName);
+	        if(matches(imageName, ".*Colour_2.*")){
+	        	selectImage(imageName);
+	        	close();
+	        }else if(matches(imageName, ".*Colour_3.*")){
+	        	color3();
+	        }else if(matches(imageName, ".*Colour_1.*")){
+	        	color1();		
+	        }
+	     }
+	  }
+	 print("");
+	 close("*");
+
+}
+
+function color3(){
+	print(imageName+" matches regex");
+				run("Clear Results");
+	        	selectImage(imageName);
+	        	print(getImageID());
+	        	run("Subtract Background...", "rolling=50 light");
+				setAutoThreshold("Default dark");
+				run("Threshold...");
+				setThreshold(0, 140);
+				setOption("BlackBackground", true);
+				close("Threshold");
+				run("Analyze Particles...", "size=100-5000 circularity=0.4-1.00 show=Outlines display summarize");
+				saveAs("png", DABResults +"/"+imageName + "DAB Results.png");
+				selectWindow("Summary");
+				saveAs("Results",dir+"/"+imageName +" Summary.csv");
+				close("Summary");
+				close(dir+"/"+imageName +" Summary.csv");
+				
+				
+				
+				
+}
+
+
+function color1(){
+	print(imageName+" matches regex");
+	        	selectImage(imageName);
+				run("Subtract Background...", "rolling=50 light");									
+				setAutoThreshold("Default dark");
+				run("Threshold...");
+				setThreshold(0, 200);
+				setOption("BlackBackground", true);
+				run("Convert to Mask");
+				run("Despeckle");
+				run("Remove Outliers", "block_radius_x=20 block_radius_y=20 standard_deviations=3");
+				setAutoThreshold("Default dark");
+				run("Threshold...");
+				setThreshold(126, 255);
+				run("Convert to Mask");
+				run("Close");
+				id=getImageID();
+				run("Analyze Particles...", "size=100-500000 circularity=0.45-1.00 show=Outlines display summarize");
+				selectWindow("Summary");
+				saveAs("Results",dir+"/"+imageName +" Results.csv");
+				close("id");
+				close(dir+"/"+imageName +" Results.csv");
+				
+}
+
+function isImage(string){
+	if(matches(string, ".*.(jpg|tif|png|tiff)")){
+		return true;
+	}else{
+		return false;
+	}
+}
+
+close("summary")
+close("Threshold")
+close("Results")
+close("log")
